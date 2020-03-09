@@ -20,8 +20,9 @@ class TestConverter(unittest.TestCase):
         )
         file.close()
 
-        clang_library_path = os.environ['CLANG_LIBRARY_PATH']
-        Config.set_library_path(clang_library_path)
+        if Config.library_path == None:
+            clang_library_path = os.environ['CLANG_LIBRARY_PATH']
+            Config.set_library_path(clang_library_path)
 
         index = Index.create()
         tu = index.parse(temp_file,
@@ -52,8 +53,9 @@ class TestConverter(unittest.TestCase):
         )
         file.close()
 
-        clang_library_path = os.environ['CLANG_LIBRARY_PATH']
-        Config.set_library_path(clang_library_path)
+        if Config.library_path == None:
+            clang_library_path = os.environ['CLANG_LIBRARY_PATH']
+            Config.set_library_path(clang_library_path)
 
         index = Index.create()
         tu = index.parse(temp_file,
@@ -75,14 +77,15 @@ class TestConverter(unittest.TestCase):
         file.write(
             'struct Foo {\n'
             '    int value;\n'
-            '    int array_value[];\n'
+            '    int array_value[4];\n'
             '    Bar struct_value;\n'
             '}\n'
         )
         file.close()
 
-        clang_library_path = os.environ['CLANG_LIBRARY_PATH']
-        Config.set_library_path(clang_library_path)
+        if Config.library_path == None:
+            clang_library_path = os.environ['CLANG_LIBRARY_PATH']
+            Config.set_library_path(clang_library_path)
 
         index = Index.create()
         tu = index.parse(temp_file,
@@ -91,7 +94,13 @@ class TestConverter(unittest.TestCase):
         children = tu.cursor.get_children()
         rust_struct = convert_struct(next(children))
 
-        expected = 'enum Foo {}\n'
+        expected = (
+            'struct Foo {\n'
+            '    value: i32,\n'
+            '    array_value: [i32; 4],\n'
+            '    struct_value: Bar,\n'
+            '}\n'
+        )
         print(rust_struct)
         print(expected)
         self.assertEqual(rust_struct, expected)
