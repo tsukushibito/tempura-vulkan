@@ -3,6 +3,7 @@ import os
 import argparse
 import clang.cindex
 from clang.cindex import Index, Config, TranslationUnit
+import re
 
 is_including_other_file = False
 source_file_path = ''
@@ -74,12 +75,68 @@ def convert_struct(node):
 
     struct_name = node.spelling
     if any(True for _ in node.get_children()):
-        rust_struct = 'struct ' + struct_name + ' {\n'
+        rust_struct = '#[repr(C)]\n'
+        rust_struct += 'struct ' + struct_name + ' {\n'
+        for child in node.get_children():
+            if child.kind.name == 'FIELD_DECL':
+                field_name = child.spelling
+                field_type = child.type.get_canonical().spelling
+                rust_struct += '    ' + field_name + \
+                    ': ' + c_type_to_rs_type(field_type) + ',\n'
         rust_struct += '}\n'
     else:
         rust_struct = 'enum ' + struct_name + ' {}\n'
 
     return rust_struct
+
+
+def c_type_to_rs_type(c_type):
+    pattern = re.compile(r'(^struct )|(^enum )')
+    match = pattern.search(c_type)
+    if match:
+        c_type = c_type[match.end():]
+
+    pattern = re.compile(r'\[\d+\]')
+    match = pattern.search(c_type)
+    if match:
+        is_array = True
+        s = match.start() + 1
+        e = match.end() - 1
+        array_length = c_type[s:e]
+        t = c_type[0: match.start() - 1]
+    else:
+        is_array = False
+        t = c_type
+
+    mapping = {
+        'bool': 'bool',
+        'char': 'c_char',
+        'double': 'c_double',
+        'float': 'c_float',
+        'int': 'c_int',
+        'signed int': 'c_int',
+        'long': 'c_long',
+        'signed long': 'c_long',
+        'long long': 'c_longlong',
+        'signed long long': 'c_longlong',
+        'short': 'c_short',
+        'signed short': 'c_short',
+        'unsigned char': 'c_uchar',
+        'unsigned int': 'c_uint',
+        'unsigned long': 'c_ulong',
+        'unsigned long long': 'c_ulonglong',
+        'unsigned short': 'c_short',
+    }
+
+    if t in mapping:
+        if is_array:
+            rs_type = '[' + mapping[t] + '; ' + array_length + ']'
+        else:
+            rs_type = mapping[t]
+    else:
+        rs_type = t
+
+    return rs_type
 
 
 def main():

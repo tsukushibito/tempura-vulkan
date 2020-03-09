@@ -75,11 +75,17 @@ class TestConverter(unittest.TestCase):
         temp_file = 'temp.h'
         file = open(temp_file, 'w')
         file.write(
+            'struct Bar;\n'
             'struct Foo {\n'
             '    int value;\n'
             '    int array_value[4];\n'
             '    Bar struct_value;\n'
-            '}\n'
+            '    Bar * struct_ptr;\n'
+            '    const Bar * const_struct_ptr;\n'
+            '    void * void_ptr;\n'
+            '    const void * const_void_ptr;\n'
+            '    const char * str;\n'
+            '};\n'
         )
         file.close()
 
@@ -92,13 +98,20 @@ class TestConverter(unittest.TestCase):
                          options=TranslationUnit.PARSE_SKIP_FUNCTION_BODIES)
 
         children = tu.cursor.get_children()
+        next(children)
         rust_struct = convert_struct(next(children))
 
         expected = (
+            '#[repr(C)]\n'
             'struct Foo {\n'
-            '    value: i32,\n'
-            '    array_value: [i32; 4],\n'
+            '    value: c_int,\n'
+            '    array_value: [c_int; 4],\n'
             '    struct_value: Bar,\n'
+            '    struct_ptr: *mut Bar,\n'
+            '    const_struct_ptr: *const Bar,\n'
+            '    void_ptr: *mut c_void,\n'
+            '    const_void_ptr: *const c_void,\n'
+            '    str: *const c_char,\n'
             '}\n'
         )
         print(rust_struct)
