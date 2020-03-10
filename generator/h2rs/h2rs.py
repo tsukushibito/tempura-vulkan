@@ -91,6 +91,22 @@ def convert_struct(node):
 
 
 def c_type_to_rs_type(c_type):
+    pattern = re.compile(r'(^const )')
+    match = pattern.search(c_type)
+    if match:
+        is_const = True
+        c_type = c_type[match.end():]
+    else:
+        is_const = False
+
+    pattern = re.compile(r'(\*$)')
+    match = pattern.search(c_type)
+    if match:
+        is_pointer = True
+        c_type = c_type[0:match.start() - 1:]
+    else:
+        is_pointer = False
+
     pattern = re.compile(r'(^struct )|(^enum )')
     match = pattern.search(c_type)
     if match:
@@ -126,6 +142,7 @@ def c_type_to_rs_type(c_type):
         'unsigned long': 'c_ulong',
         'unsigned long long': 'c_ulonglong',
         'unsigned short': 'c_short',
+        'void': 'c_void',
     }
 
     if t in mapping:
@@ -135,6 +152,12 @@ def c_type_to_rs_type(c_type):
             rs_type = mapping[t]
     else:
         rs_type = t
+
+    if is_pointer:
+        if is_const:
+            rs_type = '*const ' + rs_type
+        else:
+            rs_type = '*mut ' + rs_type
 
     return rs_type
 
