@@ -82,7 +82,7 @@ def convert_struct(node):
                 field_name = child.spelling
                 field_type = child.type.get_canonical().spelling
                 rust_struct += '    ' + field_name + \
-                    ': ' + c_type_to_rs_type(field_type) + ',\n'
+                    ': ' + convert_primitive_type(field_type) + ',\n'
         rust_struct += '}\n'
     else:
         rust_struct = 'enum ' + struct_name + ' {}\n'
@@ -90,7 +90,7 @@ def convert_struct(node):
     return rust_struct
 
 
-def c_type_to_rs_type(c_type):
+def convert_primitive_type(c_type):
     pattern = re.compile(r'(^struct )|(^enum )')
     match = pattern.search(c_type)
     if match:
