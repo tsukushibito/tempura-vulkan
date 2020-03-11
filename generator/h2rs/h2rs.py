@@ -107,7 +107,7 @@ def convert_primitive_type(c_type):
     else:
         is_pointer = False
 
-    pattern = re.compile(r'(^struct )|(^enum )')
+    pattern = re.compile(r'(^struct )|(^enum )|(^union )')
     match = pattern.search(c_type)
     if match:
         c_type = c_type[match.end():]

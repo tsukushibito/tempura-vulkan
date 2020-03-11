@@ -76,6 +76,7 @@ class TestConverter(unittest.TestCase):
         file = open(temp_file, 'w')
         file.write(
             'struct Bar;\n'
+            'union Baz;\n'
             'struct Foo {\n'
             '    int value;\n'
             '    int array_value[4];\n'
@@ -85,6 +86,7 @@ class TestConverter(unittest.TestCase):
             '    void * void_ptr;\n'
             '    const void * const_void_ptr;\n'
             '    const char * str;\n'
+            '    Baz union_value;\n'
             '};\n'
         )
         file.close()
@@ -99,6 +101,7 @@ class TestConverter(unittest.TestCase):
 
         children = tu.cursor.get_children()
         next(children)
+        next(children)
         rust_struct = convert_struct(next(children))
 
         expected = (
@@ -112,6 +115,7 @@ class TestConverter(unittest.TestCase):
             '    void_ptr: *mut c_void,\n'
             '    const_void_ptr: *const c_void,\n'
             '    str: *const c_char,\n'
+            '    union_value: Baz,\n'
             '}\n'
         )
         print(rust_struct)
