@@ -90,6 +90,27 @@ def convert_struct(node):
     return rust_struct
 
 
+def convert_union(node):
+    if node.kind.name != 'UNION_DECL':
+        return ''
+
+    union_name = node.spelling
+    if any(True for _ in node.get_children()):
+        rust_union = '#[repr(C)]\n'
+        rust_union += 'union ' + union_name + ' {\n'
+        for child in node.get_children():
+            if child.kind.name == 'FIELD_DECL':
+                field_name = child.spelling
+                field_type = child.type.get_canonical().spelling
+                rust_union += '    ' + field_name + \
+                    ': ' + convert_primitive_type(field_type) + ',\n'
+        rust_union += '}\n'
+    else:
+        rust_union = 'enum ' + union_name + ' {}\n'
+
+    return rust_union
+
+
 def convert_primitive_type(c_type):
     pattern = re.compile(r'(^const )')
     match = pattern.search(c_type)

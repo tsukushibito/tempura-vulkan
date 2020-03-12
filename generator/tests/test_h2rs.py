@@ -1,7 +1,7 @@
 import unittest
 import os
 from clang.cindex import Index, Config, TranslationUnit
-from h2rs.h2rs import convert_enum, convert_struct
+from h2rs.h2rs import convert_enum, convert_struct, convert_union
 
 
 class TestConverter(unittest.TestCase):
@@ -121,6 +121,41 @@ class TestConverter(unittest.TestCase):
         print(rust_struct)
         print(expected)
         self.assertEqual(rust_struct, expected)
+
+        os.remove(temp_file)
+
+    def test_convert_union(self):
+        temp_file = 'temp.h'
+        file = open(temp_file, 'w')
+        file.write(
+            'union Foo {\n'
+            '    int int_value;\n'
+            '    float float_value;\n'
+            '};\n'
+        )
+        file.close()
+
+        if Config.library_path == None:
+            clang_library_path = os.environ['CLANG_LIBRARY_PATH']
+            Config.set_library_path(clang_library_path)
+
+        index = Index.create()
+        tu = index.parse(temp_file,
+                         options=TranslationUnit.PARSE_SKIP_FUNCTION_BODIES)
+
+        children = tu.cursor.get_children()
+        rust_union = convert_union(next(children))
+
+        expected = (
+            '#[repr(C)]\n'
+            'union Foo {\n'
+            '    int_value: c_int,\n'
+            '    float_value: c_float,\n'
+            '}\n'
+        )
+        print(rust_union)
+        print(expected)
+        self.assertEqual(rust_union, expected)
 
         os.remove(temp_file)
 
