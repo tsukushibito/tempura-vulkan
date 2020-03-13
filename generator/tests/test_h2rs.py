@@ -32,6 +32,7 @@ class TestConverter(unittest.TestCase):
         rust_enum = convert_enum(next(children))
 
         expected = (
+            '#[repr(C)]\n'
             'enum Foo {\n'
             '    ONE = 1,\n'
             '    TWO = 2,\n'

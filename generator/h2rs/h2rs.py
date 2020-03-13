@@ -55,7 +55,8 @@ def convert_enum(node):
         return ''
 
     enum_name = node.spelling
-    rust_enum = 'enum ' + enum_name + ' {\n'
+    rust_enum = '#[repr(C)]\n'
+    rust_enum += 'enum ' + enum_name + ' {\n'
     for child in node.get_children():
         if(child.kind.name != 'ENUM_CONSTANT_DECL'):
             continue
