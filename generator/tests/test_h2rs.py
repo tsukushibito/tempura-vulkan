@@ -1,7 +1,7 @@
 import unittest
 import os
 from clang.cindex import Index, Config, TranslationUnit
-from h2rs.h2rs import convert_enum, convert_struct, convert_union
+from h2rs.h2rs import convert_enum, convert_struct, convert_union, convert_function
 
 
 class TestConverter(unittest.TestCase):
@@ -157,6 +157,45 @@ class TestConverter(unittest.TestCase):
         print(rust_union)
         print(expected)
         self.assertEqual(rust_union, expected)
+
+        os.remove(temp_file)
+
+    def test_convert_function(self):
+        temp_file = 'temp.h'
+        file = open(temp_file, 'w')
+        file.write(
+            'struct Info;\n'
+            'struct Instance;\n'
+            'void Foo();\n'
+            'int vkCreateInstance(\n'
+            '    const Info* pInfo,\n'
+            '    Instance* pInstance);\n'
+        )
+        file.close()
+
+        if Config.library_path == None:
+            clang_library_path = os.environ['CLANG_LIBRARY_PATH']
+            Config.set_library_path(clang_library_path)
+
+        index = Index.create()
+        tu = index.parse(temp_file,
+                         options=TranslationUnit.PARSE_SKIP_FUNCTION_BODIES)
+
+        children = tu.cursor.get_children()
+        next(children)
+        next(children)
+        rust_func = convert_function(next(children))
+        rust_func += convert_function(next(children))
+
+        expected = (
+            'fn Foo();\n'
+            'fn vkCreateInstance(\n'
+            '    pInfo: *const Info,\n'
+            '    pInstance: *mut Instance) -> c_int;\n'
+        )
+        print(rust_func)
+        print(expected)
+        self.assertEqual(rust_func, expected)
 
         os.remove(temp_file)
 

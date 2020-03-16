@@ -33,21 +33,20 @@ def dump(node, file, indent=0):
             dump(child, file, indent+1)
 
 
-def traverse(node, converter):
-    if converter(node):
-        for child in node.get_children():
-            traverse(child, converter)
-
-
 def convert(node, converted):
     kind = node.kind.name
     if kind == 'ENUM_DECL':
         return converted + convert_enum(node)
-    elif kind == 'ENUM_DECL':
+    elif kind == 'STRUCT_DECL':
         return converted + convert_struct(node)
+    elif kind == 'UNION_DECL':
+        return converted + convert_union(node)
+    elif kind == 'FUNCTION_DECL':
+        return converted + convert_function(node)
     else:
         for child in node.get_children():
             converted = convert(child, converted)
+        return converted
 
 
 def convert_enum(node):
@@ -67,6 +66,7 @@ def convert_enum(node):
 
     rust_enum += '}\n'
 
+    rust_enum += '\n'
     return rust_enum
 
 
@@ -88,6 +88,7 @@ def convert_struct(node):
     else:
         rust_struct = 'enum ' + struct_name + ' {}\n'
 
+    rust_struct += '\n'
     return rust_struct
 
 
@@ -109,7 +110,43 @@ def convert_union(node):
     else:
         rust_union = 'enum ' + union_name + ' {}\n'
 
+    rust_union += '\n'
     return rust_union
+
+
+def convert_function(node):
+    if node.kind.name != 'FUNCTION_DECL':
+        return ''
+    func_name = node.spelling
+    return_type = convert_primitive_type(
+        node.result_type.get_canonical().spelling)
+
+    if any(True for _ in node.get_children()):
+        rust_func = 'fn ' + func_name + '(\n'
+        is_first_param = True
+        for child in node.get_children():
+            if child.kind.name == 'PARM_DECL':
+                param_name = child.spelling
+                param_type = convert_primitive_type(
+                    child.type.get_canonical().spelling)
+                if not is_first_param:
+                    rust_func += ',\n'
+                rust_func += '    ' + param_name + ': ' + param_type
+                is_first_param = False
+
+        if return_type == 'c_void':
+            rust_func += ');\n'
+        else:
+            rust_func += ') -> ' + return_type + ';\n'
+
+    else:
+        rust_func = 'fn ' + func_name + '()'
+        if return_type == 'c_void':
+            rust_func += ';\n'
+        else:
+            rust_func += ' -> ' + return_type + ';\n'
+    rust_func += '\n'
+    return rust_func
 
 
 def convert_primitive_type(c_type):
@@ -220,8 +257,13 @@ def main():
     tu = index.parse(args.src,
                      options=TranslationUnit.PARSE_SKIP_FUNCTION_BODIES)
 
+    file_test = open(args.dst+'.txt', 'w')
+    dump(tu.cursor, file_test)
+    file_test.close()
+
+    converted = convert(tu.cursor, '')
     file = open(args.dst, 'w')
-    dump(tu.cursor, file)
+    file.write(converted)
     file.close()
 
 
