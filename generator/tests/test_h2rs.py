@@ -39,7 +39,7 @@ class TestConverter(unittest.TestCase):
             '    THREE = 3,\n'
             '    FOUR = 4,\n'
             '    MAX = 2147483647,\n'
-            '}\n')
+            '}\n\n')
         print(rust_enum)
         print(expected)
         self.assertEqual(rust_enum, expected)
@@ -65,7 +65,7 @@ class TestConverter(unittest.TestCase):
         children = tu.cursor.get_children()
         rust_struct = convert_struct(next(children))
 
-        expected = 'enum Foo {}\n'
+        expected = 'enum Foo {}\n\n'
         print(rust_struct)
         print(expected)
         self.assertEqual(rust_struct, expected)
@@ -117,7 +117,7 @@ class TestConverter(unittest.TestCase):
             '    const_void_ptr: *const c_void,\n'
             '    str: *const c_char,\n'
             '    union_value: Baz,\n'
-            '}\n'
+            '}\n\n'
         )
         print(rust_struct)
         print(expected)
@@ -152,7 +152,7 @@ class TestConverter(unittest.TestCase):
             'union Foo {\n'
             '    int_value: c_int,\n'
             '    float_value: c_float,\n'
-            '}\n'
+            '}\n\n'
         )
         print(rust_union)
         print(expected)
@@ -188,10 +188,10 @@ class TestConverter(unittest.TestCase):
         rust_func += convert_function(next(children))
 
         expected = (
-            'fn Foo();\n'
+            'fn Foo();\n\n'
             'fn vkCreateInstance(\n'
             '    pInfo: *const Info,\n'
-            '    pInstance: *mut Instance) -> c_int;\n'
+            '    pInstance: *mut Instance) -> c_int;\n\n'
         )
         print(rust_func)
         print(expected)
