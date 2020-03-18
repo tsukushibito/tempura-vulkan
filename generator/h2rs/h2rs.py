@@ -1,9 +1,10 @@
 import sys
 import os
 import argparse
-import clang.cindex
-from clang.cindex import Index, Config, TranslationUnit
 import re
+from dataclasses import dataclass
+
+from clang.cindex import Index, Config, TranslationUnit
 
 is_including_other_file = False
 source_file_path = ''
@@ -33,16 +34,40 @@ def dump(node, file, indent=0):
             dump(child, file, indent+1)
 
 
+class Converted:
+    enums: list = list()
+    unions: list = list()
+    structs: list = list()
+    functions: list = list()
+
+    def __init__(
+            self,
+            enums: list = list(),
+            unions: list = list(),
+            structs: list = list(),
+            functions: list = list()):
+        self.enums = enums
+        self.unions = unions
+        self.structs = structs
+        self.functions = functions
+
+
 def convert(node, converted):
     kind = node.kind.name
     if kind == 'ENUM_DECL':
-        return converted + convert_enum(node)
+        converted.enums.append(convert_enum(node))
+        return converted
     elif kind == 'STRUCT_DECL':
-        return converted + convert_struct(node)
+        converted.structs.append(convert_struct(node))
+        return converted
     elif kind == 'UNION_DECL':
-        return converted + convert_union(node)
+        converted.unions.append(convert_union(node))
+        return converted
     elif kind == 'FUNCTION_DECL':
-        return converted + convert_function(node)
+        converted.functions.append(convert_function(node))
+        return converted
+    elif kind == 'TYPEDEF_DECL':
+        return converted
     else:
         for child in node.get_children():
             converted = convert(child, converted)
@@ -261,9 +286,12 @@ def main():
     dump(tu.cursor, file_test)
     file_test.close()
 
-    converted = convert(tu.cursor, '')
+    converted = convert(tu.cursor, Converted())
     file = open(args.dst, 'w')
-    file.write(converted)
+    file.writelines(converted.enums)
+    file.writelines(converted.unions)
+    file.writelines(converted.structs)
+    file.writelines(converted.functions)
     file.close()
 
 

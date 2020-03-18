@@ -1,7 +1,17 @@
 import unittest
 import os
+import pprint
+
 from clang.cindex import Index, Config, TranslationUnit
-from h2rs.h2rs import convert_enum, convert_struct, convert_union, convert_function
+
+from h2rs.h2rs import (
+    convert_enum,
+    convert_function,
+    convert_struct,
+    convert_union,
+    convert,
+    Converted,
+)
 
 
 class TestConverter(unittest.TestCase):
@@ -198,6 +208,60 @@ class TestConverter(unittest.TestCase):
         self.assertEqual(rust_func, expected)
 
         os.remove(temp_file)
+
+    def test_convert(self):
+        temp_file = 'temp.h'
+        file = open(temp_file, 'w')
+        file.write(
+            'typedef enum Enum {\n'
+            '    ONE=1,\n'
+            '    TWO=2,\n'
+            '    THREE=ONE + TWO,\n'
+            '    FOUR=THREE + 1,\n'
+            '    MAX=0x7FFFFFFF\n'
+            '} Enum;\n'
+            '\n'
+            '\n'
+            'struct OpaqueStruct;\n'
+            'union OpaqueUnion;'
+            'struct Struct {\n'
+            '    int value;\n'
+            '    int array_value[4];\n'
+            '    OpaqueStruct struct_value;\n'
+            '    OpaqueStruct * struct_ptr;\n'
+            '    const OpaqueStruct * const_struct_ptr;\n'
+            '    void * void_ptr;\n'
+            '    const void * const_void_ptr;\n'
+            '    const char * str;\n'
+            '    OpaqueUnion union_value;\n'
+            '};\n'
+            '\n'
+            '\n'
+            'union Union {\n'
+            '    int int_value;\n'
+            '    float float_value;\n'
+            '};\n'
+            '\n'
+            '\n'
+            'int Function(\n'
+            '    const OpaqueStruct* arg1,\n'
+            '    OpaqueStruct* arg2);\n'
+        )
+        file.close()
+
+        if Config.library_path == None:
+            clang_library_path = os.environ['CLANG_LIBRARY_PATH']
+            Config.set_library_path(clang_library_path)
+
+        index = Index.create()
+        tu = index.parse(temp_file,
+                         options=TranslationUnit.PARSE_SKIP_FUNCTION_BODIES)
+
+        converted = convert(tu.cursor, Converted())
+        pprint.pprint(converted.enums)
+        pprint.pprint(converted.unions)
+        pprint.pprint(converted.structs)
+        pprint.pprint(converted.functions)
 
 
 if __name__ == '__main__':
