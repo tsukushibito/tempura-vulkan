@@ -1,4 +1,5 @@
 import dataclasses
+from dataclasses import dataclass, field
 from typing import List
 
 
@@ -17,10 +18,10 @@ def c_type_to_rs_type(c_type: str):
              'size_t': 'size_t',
              'int': 'i32', }
 
-    return table.get(c_type, 'unknown')
+    return table.get(c_type, c_type)
 
 
-@dataclasses.dataclass
+@dataclass
 class BaseType:
     name: str
     typedef: str
@@ -31,7 +32,7 @@ class BaseType:
                 + c_type_to_rs_type(self.typedef) + ';\n')
 
 
-@dataclasses.dataclass
+@dataclass
 class BitMask:
     name: str
     typedef: str
@@ -42,7 +43,7 @@ class BitMask:
                 + c_type_to_rs_type(self.typedef) + ';\n')
 
 
-@dataclasses.dataclass
+@dataclass
 class Handle:
     name: str
 
@@ -51,13 +52,13 @@ class Handle:
                 + 'type ' + self.name + ' = *mut ' + self.name + ';\n')
 
 
-@dataclasses.dataclass
+@dataclass
 class Param:
     type_: str
     name: str
 
 
-@dataclasses.dataclass
+@dataclass
 class FuncPointer:
     name: str
     return_type: str
@@ -73,13 +74,13 @@ class FuncPointer:
         return rs
 
 
-@dataclasses.dataclass
+@dataclass
 class Enum:
     name: str
     value: int
 
 
-@dataclasses.dataclass
+@dataclass
 class Enums:
     name: str
     enums: List[Enum]
@@ -92,13 +93,13 @@ class Enums:
         return rs
 
 
-@dataclasses.dataclass
+@dataclass
 class Member:
     name: str
     type_: str
 
 
-@dataclasses.dataclass
+@dataclass
 class Struct:
     name: str
     members: List[Member]
@@ -112,7 +113,7 @@ class Struct:
         return rs
 
 
-@dataclasses.dataclass
+@dataclass
 class Union:
     name: str
     members: List[Member]
@@ -126,7 +127,7 @@ class Union:
         return rs
 
 
-@dataclasses.dataclass
+@dataclass
 class Command:
     name: str
     return_type: str
@@ -139,3 +140,15 @@ class Command:
         rs += ');\n'
 
         return rs
+
+
+@dataclass
+class Elements:
+    basetypes: List[BaseType] = field(default_factory=list)
+    bitmasks: List[BitMask] = field(default_factory=list)
+    handles: List[Handle] = field(default_factory=list)
+    functionpointers: List[FuncPointer] = field(default_factory=list)
+    enums: List[Enums] = field(default_factory=list)
+    structs: List[Struct] = field(default_factory=list)
+    unions: List[Union] = field(default_factory=list)
+    commands: List[Command] = field(default_factory=list)
