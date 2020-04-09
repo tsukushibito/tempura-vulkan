@@ -41,19 +41,28 @@ def parse_funcpointer(node: ET.Element):
 
     params = []
     for e in node.iter('type'):
+        if e.get('category') == 'funcpointer':
+            continue
         param_type = e.text
         tails = e.tail.split()
-        param_name = tails[-1]
         if tails[0] == '*':
             is_pointer = True
+            param_name = tails[1]
+        else:
+            is_pointer = False
+            param_name = tails[0]
+        param_name = param_name.replace(',', '')
+        param_name = param_name.replace(')', '')
+        param_name = param_name.replace(';', '')
 
         if is_pointer:
             if is_const:
                 param_type = 'const ' + param_type + ' *'
             else:
-                param_type = param_type * ' *'
+                param_type = param_type + ' *'
         param = Param(param_type, param_name)
         params.append(param)
+        is_const = tails[-1] == 'const'
 
     return FuncPointer(name, return_type, params)
 
