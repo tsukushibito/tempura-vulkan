@@ -33,24 +33,6 @@ class TestConverter(unittest.TestCase):
         self.assertEqual(basetypes[3], BaseType('VkDeviceSize', 'uint64_t'))
         self.assertEqual(basetypes[4], BaseType('VkDeviceAddress', 'uint64_t'))
 
-    def test_parse_bitmask(self):
-        xml = (
-            '<types>'
-            '    <type requires="VkFramebufferCreateFlagBits" category="bitmask">typedef <type>VkFlags</type> <name>VkFramebufferCreateFlags</name>;</type>'
-            '    <type category="bitmask">typedef <type>VkFlags</type> <name>VkQueryPoolCreateFlags</name>;</type>'
-            '</types>'
-        )
-        root = ET.fromstring(xml)
-        children = root.getchildren()
-        bitmasks = []
-        for child in children:
-            bitmasks.append(parse_bitmask(child))
-
-        self.assertEqual(bitmasks[0], BitMask(
-            'VkFramebufferCreateFlags', 'VkFlags'))
-        self.assertEqual(bitmasks[1], BitMask(
-            'VkQueryPoolCreateFlags', 'VkFlags'))
-
     def test_parse_handle(self):
         xml = (
             '<types>'
@@ -69,17 +51,22 @@ class TestConverter(unittest.TestCase):
 
     def test_parse_funcpointer(self):
         xml = (
-            '<types>'
-            '    <type category="funcpointer">typedef VkBool32 (VKAPI_PTR *<name>PFN_vkDebugReportCallbackEXT</name>)('
-            '    <type>VkDebugReportFlagsEXT</type>                       flags,'
-            '    <type>VkDebugReportObjectTypeEXT</type>                  objectType,'
-            '    <type>uint64_t</type>                                    object,'
-            '    <type>size_t</type>                                      location,'
-            '    <type>int32_t</type>                                     messageCode,'
-            '    const <type>char</type>*                                 pLayerPrefix,'
-            '    const <type>char</type>*                                 pMessage,'
-            '    <type>void</type>*                                       pUserData);</type>'
-            '</types>'
+            '<types>\n'
+            '<type category="funcpointer">typedef VkBool32 (VKAPI_PTR *<name>PFN_vkDebugReportCallbackEXT</name>)(\n'
+            '<type>VkDebugReportFlagsEXT</type>                       flags,\n'
+            '<type>VkDebugReportObjectTypeEXT</type>                  objectType,\n'
+            '<type>uint64_t</type>                                    object,\n'
+            '<type>size_t</type>                                      location,\n'
+            '<type>int32_t</type>                                     messageCode,\n'
+            'const <type>char</type>*                                 pLayerPrefix,\n'
+            'const <type>char</type>*                                 pMessage,\n'
+            '<type>void</type>*                                       pUserData);</type>\n'
+            '<type category="funcpointer" requires="VkDebugUtilsMessengerCallbackDataEXT">typedef VkBool32 (VKAPI_PTR *<name>PFN_vkDebugUtilsMessengerCallbackEXT</name>)(\n'
+            '<type>VkDebugUtilsMessageSeverityFlagBitsEXT</type>           messageSeverity,\n'
+            '<type>VkDebugUtilsMessageTypeFlagsEXT</type>                  messageTypes,\n'
+            'const <type>VkDebugUtilsMessengerCallbackDataEXT</type>*      pCallbackData,\n'
+            '<type>void</type>*                                            pUserData);</type>\n'
+            '</types>\n'
         )
         root = ET.fromstring(xml)
         children = root.getchildren()
@@ -102,21 +89,61 @@ class TestConverter(unittest.TestCase):
                     Param('const char *', 'pMessage'),
                     Param('void *', 'pUserData'),
                 ]))
-        # print(funcpointers[0])
-        # expected = FuncPointer(
-        #     'PFN_vkDebugReportCallbackEXT',
-        #     'VkBool32',
-        #     [
-        #         Param('VkDebugReportFlagsEXT', 'flags'),
-        #         Param('VkDebugReportObjectTypeEXT', 'objectType'),
-        #         Param('uint64_t', 'object'),
-        #         Param('size_t', 'location'),
-        #         Param('int32_t', 'messageCode'),
-        #         Param('const char *', 'pLayerPrefix'),
-        #         Param('const char *', 'pMessage'),
-        #         Param('void *', 'pUserData'),
-        #     ])
-        # print(expected)
+        self.assertEqual(
+            funcpointers[1],
+            FuncPointer(
+                'PFN_vkDebugUtilsMessengerCallbackEXT',
+                'VkBool32',
+                [
+                    Param('VkDebugUtilsMessageSeverityFlagBitsEXT',
+                          'messageSeverity'),
+                    Param('VkDebugUtilsMessageTypeFlagsEXT', 'messageTypes'),
+                    Param('const VkDebugUtilsMessengerCallbackDataEXT *',
+                          'pCallbackData'),
+                    Param('void *', 'pUserData'),
+                ]))
+
+    def test_parse_enums(self):
+        xml = (
+            '<registry>'
+            '    <enums name="VkPerformanceCounterScopeKHR" type="enum">\n'
+            '        <enum value="0"     name="VK_PERFORMANCE_COUNTER_SCOPE_COMMAND_BUFFER_KHR"/>\n'
+            '        <enum value="1"     name="VK_PERFORMANCE_COUNTER_SCOPE_RENDER_PASS_KHR"/>\n'
+            '        <enum value="2"     name="VK_PERFORMANCE_COUNTER_SCOPE_COMMAND_KHR"/>\n'
+            '        <enum               name="VK_QUERY_SCOPE_COMMAND_BUFFER_KHR" alias="VK_PERFORMANCE_COUNTER_SCOPE_COMMAND_BUFFER_KHR"/>\n'
+            '        <enum               name="VK_QUERY_SCOPE_RENDER_PASS_KHR" alias="VK_PERFORMANCE_COUNTER_SCOPE_RENDER_PASS_KHR"/>\n'
+            '        <enum               name="VK_QUERY_SCOPE_COMMAND_KHR" alias="VK_PERFORMANCE_COUNTER_SCOPE_COMMAND_KHR"/>\n'
+            '    </enums>\n'
+            '    <comment>Flags</comment>\n'
+            '    <enums name="VkQueueFlagBits" type="bitmask">\n'
+            '        <enum bitpos="0"    name="VK_QUEUE_GRAPHICS_BIT"                             comment="Queue supports graphics operations"/>\n'
+            '        <enum bitpos="1"    name="VK_QUEUE_COMPUTE_BIT"                              comment="Queue supports compute operations"/>\n'
+            '        <enum bitpos="2"    name="VK_QUEUE_TRANSFER_BIT"                             comment="Queue supports transfer operations"/>\n'
+            '        <enum bitpos="3"    name="VK_QUEUE_SPARSE_BINDING_BIT"                       comment="Queue supports sparse resource memory management operations"/>\n'
+            '    </enums>\n'
+            '</registry>\n'
+        )
+        root = ET.fromstring(xml)
+        children = root.getchildren()
+        enums = []
+        for child in children:
+            if child.tag == 'enums':
+                enums.append(parse_enums(child))
+
+        self.assertEqual(enums[0], Enums('VkPerformanceCounterScopeKHR', [
+            Enum('VK_PERFORMANCE_COUNTER_SCOPE_COMMAND_BUFFER_KHR', 0),
+            Enum('VK_PERFORMANCE_COUNTER_SCOPE_RENDER_PASS_KHR', 1),
+            Enum('VK_PERFORMANCE_COUNTER_SCOPE_COMMAND_KHR', 2),
+            Enum('VK_QUERY_SCOPE_COMMAND_BUFFER_KHR', 0),
+            Enum('VK_QUERY_SCOPE_RENDER_PASS_KHR', 1),
+            Enum('VK_QUERY_SCOPE_COMMAND_KHR', 2),
+        ]))
+        self.assertEqual(enums[1], Enums('VkQueueFlagBits', [
+            Enum('VK_QUEUE_GRAPHICS_BIT', 1),
+            Enum('VK_QUEUE_COMPUTE_BIT', 2),
+            Enum('VK_QUEUE_TRANSFER_BIT', 4),
+            Enum('VK_QUEUE_SPARSE_BINDING_BIT', 8),
+        ]))
 
 
 if __name__ == '__main__':

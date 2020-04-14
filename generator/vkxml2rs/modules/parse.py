@@ -19,12 +19,6 @@ def parse_basetype(node: ET.Element):
     return BaseType(name, typedef)
 
 
-def parse_bitmask(node: ET.Element):
-    typedef = node[0].text
-    name = node[1].text
-    return BitMask(name, typedef)
-
-
 def parse_handle(node: ET.Element):
     name = node[1].text
     return Handle(name)
@@ -67,6 +61,32 @@ def parse_funcpointer(node: ET.Element):
     return FuncPointer(name, return_type, params)
 
 
+def parse_enums(node: ET.Element):
+    name = node.attrib['name']
+    if not node.attrib.get('type'):
+        return None
+
+    enum_type = node.attrib['type']
+    enums = []
+    for child in node.getchildren():
+        enum_name = child.attrib['name']
+        if child.attrib.get('alias'):
+            alias_name = child.attrib['alias']
+            aliases = list(filter(lambda x: x.name == alias_name, enums))
+            assert len(aliases) > 0
+            enum_value = aliases[0].value
+        else:
+            if enum_type == 'enum':
+                enum_value = int(child.attrib['value'])
+            elif enum_type == 'bitmask':
+                enum_value = 1 << int(child.attrib['bitpos'])
+            else:
+                assert False, 'Unknown type.'
+        enums.append(Enum(enum_name, enum_value))
+
+    return Enums(name, enums)
+
+
 def parse_struct(node: ET.Element):
     struct = Struct()
 
@@ -81,10 +101,6 @@ def parse_types(node: ET.Element, elements: Elements):
             basetype = parse_basetype(child)
             elements.basetypes.append(basetype)
 
-        elif category == 'bitmask':
-            bitmask = parse_bitmask(child)
-            elements.bitmasks.append(bitmask)
-
         elif category == 'handle':
             handle = parse_handle(child)
             elements.handles.append(handle)
@@ -94,7 +110,3 @@ def parse_types(node: ET.Element, elements: Elements):
             elements.functionpointers.append(funcpointer)
 
     return elements
-
-
-def parse_enums():
-    pass

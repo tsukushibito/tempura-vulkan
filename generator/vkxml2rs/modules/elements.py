@@ -33,17 +33,6 @@ class BaseType:
 
 
 @dataclass
-class BitMask:
-    name: str
-    typedef: str
-
-    def to_rs(self):
-        return ('type ' + self.name
-                + ' = '
-                + c_type_to_rs_type(self.typedef) + ';\n')
-
-
-@dataclass
 class Handle:
     name: str
 
@@ -145,7 +134,6 @@ class Command:
 @dataclass
 class Elements:
     basetypes: List[BaseType] = field(default_factory=list)
-    bitmasks: List[BitMask] = field(default_factory=list)
     handles: List[Handle] = field(default_factory=list)
     functionpointers: List[FuncPointer] = field(default_factory=list)
     enums: List[Enums] = field(default_factory=list)
