@@ -88,7 +88,36 @@ def parse_enums(node: ET.Element):
 
 
 def parse_struct(node: ET.Element):
-    struct = Struct()
+    name = node.attrib['name']
+    members = []
+    for child in node.getchildren():
+        if child.tag != 'member':
+            continue
+
+        is_const = False
+        if child.text is not None:
+            words = child.text.split()
+            is_const = len(words) > 0 and words[0] == 'const'
+
+        member_type = child[0].text
+
+        is_pointer = False
+        if child[0].tail is not None:
+            words = child[0].tail.split()
+            is_pointer = len(words) > 0 and words[0] == '*'
+
+        member_name = child[1].text
+
+        if is_pointer:
+            if is_const:
+                member_type = 'const ' + member_type + ' *'
+            else:
+                member_type = member_type + ' *'
+
+        member = Member(member_name, member_type)
+        members.append(member)
+
+    return Struct(name, members)
 
 
 def parse_types(node: ET.Element, elements: Elements):

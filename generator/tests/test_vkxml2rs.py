@@ -145,6 +145,37 @@ class TestConverter(unittest.TestCase):
             Enum('VK_QUEUE_SPARSE_BINDING_BIT', 8),
         ]))
 
+    def test_parse_struct(self):
+        xml = (
+            '<registry>'
+            '    <type category="struct" name="VkApplicationInfo">\n'
+            '        <member values="VK_STRUCTURE_TYPE_APPLICATION_INFO"><type>VkStructureType</type> <name>sType</name></member>\n'
+            '        <member>const <type>void</type>*     <name>pNext</name></member>\n'
+            '        <member optional="true" len="null-terminated">const <type>char</type>*     <name>pApplicationName</name></member>\n'
+            '        <member><type>uint32_t</type>        <name>applicationVersion</name></member>\n'
+            '        <member optional="true" len="null-terminated">const <type>char</type>*     <name>pEngineName</name></member>\n'
+            '        <member><type>uint32_t</type>        <name>engineVersion</name></member>\n'
+            '        <member><type>uint32_t</type>        <name>apiVersion</name></member>\n'
+            '    </type>\n'
+            '</registry>\n'
+        )
+        root = ET.fromstring(xml)
+        children = root.getchildren()
+        structs = []
+        for child in children:
+            if child.tag == 'type' and child.attrib['category'] == 'struct':
+                structs.append(parse_struct(child))
+
+        self.assertEqual(structs[0], Struct('VkApplicationInfo', [
+            Member('sType', 'VkStructureType'),
+            Member('pNext', 'const void *'),
+            Member('pApplicationName', 'const char *'),
+            Member('applicationVersion', 'uint32_t'),
+            Member('pEngineName', 'const char *'),
+            Member('engineVersion', 'uint32_t'),
+            Member('apiVersion', 'uint32_t'),
+        ]))
+
 
 if __name__ == '__main__':
     unittest.main()
